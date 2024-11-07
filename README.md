@@ -6,6 +6,9 @@
 
 可使用host网络模式部署，也可使用macvlan网络模式部署作为独立主机（在特权模式下可设置单独的防火墙）
 
+github: https://github.com/eyunzhu/baota
+
+docker: https://hub.docker.com/r/eyunzhu/baota
 
 ## 镜像简介
 
