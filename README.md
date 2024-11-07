@@ -29,7 +29,7 @@ docker: https://hub.docker.com/r/eyunzhu/baota
    # 普通模式
    docker run -d eyunzhu/baota:lnmp
 
-   # 特权模式 可以单独使用防火墙
+   # 特权模式 可单独设置iptables防火墙
    docker run -d --privileged --entrypoint="/bin/bash" eyunzhu/baota:lnmp -c "/usr/local/bin/boot.sh & exec /lib/systemd/systemd"
    ```
 2. 面板基本信息
@@ -45,7 +45,7 @@ docker: https://hub.docker.com/r/eyunzhu/baota
    # 普通模式
    docker run -d --name='bt_1' --net macvlan-net --ip 192.168.1.211 eyunzhu/baota:lnmp
 
-   # 特权模式 使用macvlan
+   # 特权模式 使用macvlan 可单独设置iptables防火墙
    docker run -d --privileged --name='bt_2' --net macvlan-net --ip 192.168.1.201 --entrypoint="/bin/bash" eyunzhu/baota:lnmp -c "/usr/local/bin/boot.sh & exec /lib/systemd/systemd"
    ```
 
