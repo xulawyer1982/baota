@@ -1,0 +1,73 @@
+name: Build and Push Docker Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.ref }}-${{ github.sha }}
+        restore-keys: |
+            ${{ runner.os }}-buildx-
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Get Git tag
+      id: get_tag
+      run: |
+        TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD )
+        echo "TAG=$TAG" >> $GITHUB_ENV
+
+    # 构建 baota:minimal
+    - name: Build minimal image
+      run: |
+        docker build -t eyunzhu/baota:minimal -t eyunzhu/baota:latest -t eyunzhu/baota:minimal-${{ env.TAG }} -f ./dockerfiles/dockerfile.baota . || exit 1
+
+    # 验证 baota:minimal 是否存在
+    - name: Verify images exist
+      run: |
+        if ! docker image inspect eyunzhu/baota:minimal > /dev/null 2>&1; then
+            echo "Error: eyunzhu/baota:minimal does not exist!"
+            exit 1
+        fi
+    
+    # 构建 baota:lnmp
+    - name: Build lnmp image
+      run: |
+        docker build -t eyunzhu/baota:lnmp -t  eyunzhu/baota:lnmp-${{ env.TAG }} -f ./dockerfiles/dockerfile.baota-lnmp . || exit 1
+
+    # 验证 baota:lnmp 是否存在
+    - name: Verify images exist
+      run: |
+        if ! docker image inspect eyunzhu/baota:lnmp > /dev/null 2>&1; then
+            echo "Error: eyunzhu/baota:lnmp does not exist!"
+            exit 1
+        fi
+  
+           
+    - name: Push minimal image to Docker Hub
+      run: |
+        docker push eyunzhu/baota:minimal
+        docker push eyunzhu/baota:latest
+        docker push eyunzhu/baota:minimal-${{ env.TAG }}
+
+    - name: Push LNMP image to Docker Hub
+      run: |
+        docker push eyunzhu/baota:lnmp
+        docker push eyunzhu/baota:lnmp-${{ env.TAG }}    
