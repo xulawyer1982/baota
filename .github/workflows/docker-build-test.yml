@@ -28,16 +28,10 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Get Git tag
-      id: get_tag
-      run: |
-        TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD )
-        echo "TAG=$TAG" >> $GITHUB_ENV
-
     # 构建 baota:minimal
     - name: Build minimal image
       run: |
-        docker build -t eyunzhu/baota:minimal -t eyunzhu/baota:latest -t eyunzhu/baota:minimal-${{ env.TAG }} -f ./dockerfiles/dockerfile.baota . || exit 1
+        docker build -t eyunzhu/baota:minimal -t eyunzhu/baota:minimal_test -f ./dockerfiles/dockerfile.baota . || exit 1
 
     # 验证 baota:minimal 是否存在
     - name: Verify images exist
@@ -47,27 +41,23 @@ jobs:
             exit 1
         fi
     
-    # 构建 baota:lnmp
+    # 构建 baota:lnmp_test
     - name: Build lnmp image
       run: |
-        docker build -t eyunzhu/baota:lnmp -t  eyunzhu/baota:lnmp-${{ env.TAG }} -f ./dockerfiles/dockerfile.baota-lnmp . || exit 1
+        docker build -t eyunzhu/baota:lnmp_test -f ./dockerfiles/dockerfile.baota-lnmp . || exit 1
 
-    # 验证 baota:lnmp 是否存在
+    # 验证 baota:lnmp_test 是否存在
     - name: Verify images exist
       run: |
-        if ! docker image inspect eyunzhu/baota:lnmp > /dev/null 2>&1; then
-            echo "Error: eyunzhu/baota:lnmp does not exist!"
+        if ! docker image inspect eyunzhu/baota:lnmp_test > /dev/null 2>&1; then
+            echo "Error: eyunzhu/baota:lnmp_test does not exist!"
             exit 1
         fi
-  
            
     - name: Push minimal image to Docker Hub
       run: |
-        docker push eyunzhu/baota:minimal
-        docker push eyunzhu/baota:latest
-        docker push eyunzhu/baota:minimal-${{ env.TAG }}
+        docker push eyunzhu/baota:minimal_test
 
     - name: Push LNMP image to Docker Hub
       run: |
-        docker push eyunzhu/baota:lnmp
-        docker push eyunzhu/baota:lnmp-${{ env.TAG }}    
+        docker push eyunzhu/baota:lnmp_test
