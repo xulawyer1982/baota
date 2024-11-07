@@ -1,0 +1,5 @@
+# 排除项目中的所有文件
+*
+# 仅保留 scripts 目录下的文件
+!scripts/
+!scripts/*

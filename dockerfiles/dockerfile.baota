@@ -1,0 +1,56 @@
+FROM debian:12
+LABEL maintainer="eyunzhu <mail@eyunzhu.com>"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY scripts/boot.sh /usr/local/bin/boot.sh
+COPY scripts/iptables-rules.sh /usr/local/bin/iptables-rules.sh
+
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    sudo \
+    # curl \
+    wget \
+    vim \
+    iproute2 \
+    iputils-ping \
+    procps \
+    # htop \
+    # lsof \
+    # dnsutils \
+    iptables \
+    cron \
+    locales \
+    systemd \
+    dbus \
+    net-tools \
+    openssh-server \
+    libc-ares2 \
+    libonig5 \
+    && wget -4 --no-check-certificate -O install.sh https://download.bt.cn/install/install_lts.sh \
+    # 取消宝塔安装检查
+    && sed -i '/Ready_Check$/ s/^/#/' install.sh \
+    # 取消宝塔防火墙设置
+    && sed -i '/Set_Firewall$/ s/^/#/' install.sh \
+    && bash install.sh -P 8888 --safe-path "btpanel" --ssl-disable -y \
+    && echo username|bt 6 && echo password|bt 5 \
+    # 开启ipv6访问面板
+    && echo '::' > /www/server/panel/data/ipv6.pl \
+    # 将防火墙设置为 iptables-legacy
+    && update-alternatives --set iptables /usr/sbin/iptables-legacy \
+    && update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy \
+    && sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen  \
+    && locale-gen \
+    && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone \
+    # 设置boot.sh脚本权限
+    && chmod +x /usr/local/bin/boot.sh \
+    # 清理
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /www/reserve_space.pl \
+    && rm -rf /var/log/* 
+
+STOPSIGNAL SIGRTMIN+3
+ENTRYPOINT ["/usr/local/bin/boot.sh"]
