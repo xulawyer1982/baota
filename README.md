@@ -48,6 +48,10 @@ docker: https://hub.docker.com/r/eyunzhu/baota
    # 特权模式 使用macvlan 可单独设置iptables防火墙
    docker run -d --privileged --name='bt_2' --net macvlan-net --ip 192.168.1.201 --entrypoint="/bin/bash" eyunzhu/baota:lnmp -c "/usr/local/bin/boot.sh & exec /lib/systemd/systemd"
    ```
+5. 其他
+   
+   1. ssh开关默认关闭，若使用请到面板ssh管理打开，以及修改root密码
+
 
 
 ## 自主构建镜像方法
