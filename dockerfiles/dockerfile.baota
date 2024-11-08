@@ -50,7 +50,7 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debia
     # 压缩删除/www 解决挂载目录时被宿主机覆盖的问题
     && rm /www/reserve_space.pl \
     && tar czf /www_backup.tar.gz -C / www \
-    && rm -rf /www/* \
+    && rm -rf /www \
     # 清理
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
