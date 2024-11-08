@@ -1,6 +1,6 @@
 # 宝塔面板Docker镜像
 
-基于Debian12构建的宝塔面板镜像，为dockerfile使用宝塔官方脚本自动构建，无人工干预，安全有保障，dockerfile公开可自定义构建
+基于Debian12构建的宝塔面板镜像，为dockerfile使用宝塔官方脚本github Actions自动构建，无人工干预，安全有保障，dockerfile公开可自定义构建
 
 面板版本随官方安装脚本更新
 
