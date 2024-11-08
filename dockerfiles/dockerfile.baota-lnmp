@@ -29,4 +29,3 @@ RUN tar xzf /www_backup.tar.gz -C / \
     && rm -rf /tmp/* 
 
 STOPSIGNAL SIGRTMIN+3
-CMD ["/lib/systemd/systemd"]
