@@ -1,25 +1,17 @@
 # 宝塔面板Docker镜像
 
-基于Debian12构建的宝塔面板镜像，为dockerfile使用宝塔官方脚本github Actions自动构建，无人工干预，安全有保障，dockerfile公开可自定义构建
-
-面板版本随官方安装脚本更新
-
-可使用host网络模式部署，也可使用macvlan网络模式部署作为独立主机（在特权模式下可设置单独的防火墙）
-
-github: https://github.com/eyunzhu/baota
-
-docker: https://hub.docker.com/r/eyunzhu/baota
+- 基于Debian12构建的宝塔面板镜像，为dockerfile使用宝塔官方脚本[github Actions自动构建](https://github.com/eyunzhu/baota/actions)，无人工干预，安全有保障，[dockerfile](https://github.com/eyunzhu/baota/tree/master/dockerfiles)公开可[自定义构建](##自主构建镜像方法)
+- 面板版本随官方安装脚本更新
+- 可使用host网络模式部署，也可使用macvlan网络模式部署作为独立主机（在特权模式下可设置单独的防火墙）
+- github: https://github.com/eyunzhu/baota
+- docker: https://hub.docker.com/r/eyunzhu/baota
 
 ## 镜像简介
 
 
-1. `baota:minimal`
+1. `baota:minimal` 仅安装了最新版宝塔面板
    
-   仅安装了最新版宝塔面板
-
-2. `baota:lnmp`
-
-   基于`baota:minimal`，安装了完整的LNMP环境(nginx1.24,mysql5.7,php7.4/8.2,phpmyadmin5.1,redis7.2)
+2. `baota:lnmp` 安装了完整的LNMP环境(nginx1.24,mysql5.7,php7.4/8.2,phpmyadmin5.1,redis7.2)
 
 ## 镜像使用
 
@@ -28,14 +20,14 @@ docker: https://hub.docker.com/r/eyunzhu/baota
    ```bash
    # 普通模式
    docker run -d eyunzhu/baota:lnmp
-
+   
    # 特权模式 可单独设置iptables防火墙
    docker run -d --privileged --entrypoint="/bin/bash" eyunzhu/baota:lnmp -c "/usr/local/bin/boot.sh & exec /lib/systemd/systemd"
    ```
 2. 面板基本信息
-   1. 面板管理地址：http://您的ip地址:8888/btpanel
-   2. 默认用户：username
-   3. 默认密码：password
+   1. 面板管理地址：`http://您的ip地址:8888/btpanel`
+   2. 默认用户：`username`
+   3. 默认密码：`password`
 3. 目录 （宝塔默认未更改）
    1. 容器里面的网站数据目录：`/www/wwwroot`
    2. MySQL数据目录：`/www/server/data`
@@ -44,7 +36,7 @@ docker: https://hub.docker.com/r/eyunzhu/baota
    ```bash
    # 普通模式
    docker run -d --name='bt_1' --net macvlan-net --ip 192.168.1.211 eyunzhu/baota:lnmp
-
+   
    # 特权模式 使用macvlan 可单独设置iptables防火墙
    docker run -d --privileged --name='bt_2' --net macvlan-net --ip 192.168.1.201 --entrypoint="/bin/bash" eyunzhu/baota:lnmp -c "/usr/local/bin/boot.sh & exec /lib/systemd/systemd"
    ```
@@ -77,14 +69,14 @@ docker: https://hub.docker.com/r/eyunzhu/baota
    1. `baota:minimal`
       ```bash
       docker build -t eyunzhu/baota:minimal -f ./dockerfiles/dockerfile.baota . 
-
+      
       # 或者后台运行构建
       nohup docker build --network macvlan-net -t eyunzhu/baota:minimal -f ./dockerfiles/dockerfile.baota . > 1.log 2>&1 &
       ```
    2. `baota:lnmp`
       ```bash
       docker build -t eyunzhu/baota:lnmp -f ./dockerfiles/dockerfile.baota-lnmp . 
-
+      
       # 或者后台运行构建
       nohup docker build --network macvlan-net -t eyunzhu/baota:lnmp -f ./dockerfiles/dockerfile.baota-lnmp . > 2.log 2>&1 &
       ```
