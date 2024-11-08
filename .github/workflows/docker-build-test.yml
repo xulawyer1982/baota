@@ -48,7 +48,7 @@ jobs:
 
     # Upload the Minimal image as an artifact
     - name: Upload minimal image artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: minimal_test_image
         path: minimal_test.tar
@@ -73,7 +73,7 @@ jobs:
     # Upload the LNMP image as an artifact
     - name: Upload lnmp image artifact
       if: ${{ github.event.inputs.push_type == 'both' }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: lnmp_test_image
         path: lnmp_test.tar
@@ -85,7 +85,7 @@ jobs:
     steps:
     # Download the Minimal image artifact
     - name: Download minimal image artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: minimal_test_image
 
@@ -109,7 +109,7 @@ jobs:
     steps:
     # Download the LNMP image artifact
     - name: Download lnmp image artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: lnmp_test_image
 
