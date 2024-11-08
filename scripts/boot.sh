@@ -5,24 +5,24 @@
 
 
 # 初始化：还原面板数据
-if [ -d /www ] && [ ! "$(ls -A /www)" ] && [ -f /www_backup.tar.gz ]; then
+if [ -f /www_backup.tar.gz ]; then
   # www目录为空 并且/www.tar.gz存在
   # 还原数据
   echo "初始化：还原面板数据"
   tar xzf /www_backup.tar.gz -C /
   rm -rf /www_backup.tar.gz
-
-  # 扫描并启动所有服务
-  init_scripts=$(ls /etc/init.d)
-    for script in ${init_scripts}; do
-        /etc/init.d/${script} start
-  done
 fi
 
 
 # 启动面板
 /usr/bin/bt stop
 /usr/bin/bt start
+
+# 扫描并启动所有服务
+init_scripts=$(ls /etc/init.d)
+  for script in ${init_scripts}; do
+      /etc/init.d/${script} start
+done
 
 
 # 运行防火墙规则
