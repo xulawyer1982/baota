@@ -35,6 +35,8 @@ jobs:
     - name: Build minimal image
       run: |
         docker build -t eyunzhu/baota:minimal -t eyunzhu/baota:minimal_test -f ./dockerfiles/dockerfile.baota . || exit 1
+        docker save eyunzhu/baota:minimal_test -o minimal_test.tar
+
 
     # 验证 baota:minimal 是否存在
     - name: Verify images exist
@@ -43,12 +45,21 @@ jobs:
             echo "Error: eyunzhu/baota:minimal does not exist!"
             exit 1
         fi
+
+    # Upload the Minimal image as an artifact
+    - name: Upload minimal image artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: minimal_test_image
+        path: minimal_test.tar
     
     # 根据选择决定是否构建 lnmp_test
     - name: Build lnmp image
       if: ${{ github.event.inputs.push_type == 'both' }}
       run: |
         docker build -t eyunzhu/baota:lnmp_test -f ./dockerfiles/dockerfile.baota-lnmp . || exit 1
+        docker save eyunzhu/baota:lnmp_test -o lnmp_test.tar
+
 
     # 验证 baota:lnmp_test 是否存在
     - name: Verify images exist
@@ -58,21 +69,36 @@ jobs:
             echo "Error: eyunzhu/baota:lnmp_test does not exist!"
             exit 1
         fi
+    
+    # Upload the LNMP image as an artifact
+    - name: Upload lnmp image artifact
+      if: ${{ github.event.inputs.push_type == 'both' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: lnmp_test_image
+        path: lnmp_test.tar
            
   push_minimal:
     runs-on: ubuntu-latest
     needs: build
     
     steps:
+    # Download the Minimal image artifact
+    - name: Download minimal image artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: minimal_test_image
+
     - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # Push minimal image to Docker Hub
+    # Push the Minimal image to Docker Hub
     - name: Push minimal image to Docker Hub
       run: |
+        docker load -i minimal_test.tar
         docker push eyunzhu/baota:minimal_test
 
   push_lnmp:
@@ -81,14 +107,21 @@ jobs:
     if: ${{ github.event.inputs.push_type == 'both' }}
     
     steps:
+    # Download the LNMP image artifact
+    - name: Download lnmp image artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: lnmp_test_image
+
     - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # Push LNMP image to Docker Hub
+    # Push the LNMP image to Docker Hub
     - name: Push LNMP image to Docker Hub
       run: |
+        docker load -i lnmp_test.tar
         docker push eyunzhu/baota:lnmp_test
         
