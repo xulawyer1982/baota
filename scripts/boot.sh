@@ -18,11 +18,24 @@ fi
 /usr/bin/bt stop
 /usr/bin/bt start
 
-# 扫描并重启所有服务
-init_scripts=$(ls /etc/init.d)
-  echo "扫描并重启所有服务"
-  for script in ${init_scripts}; do
-      /etc/init.d/${script} restart
+
+# 扫描并启动服务
+for script in /etc/init.d/*; do
+    if [[ "$script" =~ ^/etc/init.d/(bt|mysqld|nginx|httpd|php-fpm-74|php-fpm-82)$ ]]; then
+        echo -e "启动 ${script##*/}"
+        ${script} start
+    else if [[ "$script" =~ ^/etc/init.d/(redis)$ ]]; then
+        if ps -p 1 | grep -q "systemd"; then
+            echo -e "当前容器在特权模式下，执行正常启动redis"
+            /etc/init.d/redis restart
+        else
+            echo -e "当前容器为非特权模式，适配宝塔面板中redis无法启动的问题"
+            rm -rf /www/server/redis/redis.pid
+            /etc/init.d/redis stop > /dev/null
+            /www/server/redis/src/redis-server /www/server/redis/redis.conf
+        fi
+      fi
+    fi
 done
 
 
