@@ -1,7 +1,12 @@
 # 宝塔面板Docker镜像
 
-- 基于Debian12构建的宝塔面板镜像，为dockerfile使用宝塔官方脚本[github Actions自动构建](https://github.com/eyunzhu/baota/actions)，无人工干预，安全有保障，[dockerfile](https://github.com/eyunzhu/baota/tree/master/dockerfiles)公开可[自定义构建](##自主构建镜像方法)
-- 面板版本随官方安装脚本更新
+- 基于Debian12构建的宝塔面板镜像，为[github Actions自动构建](https://github.com/eyunzhu/baota/actions)，无人工干预，安全有保障，[dockerfile](https://github.com/eyunzhu/baota/tree/master/dockerfiles)公开可[自定义构建](##自主构建镜像方法)
+- 优点
+  - 可自由的挂载目录，数据迁移备份方便而不用操心容器环境，比官方更方便
+  - dockerfile开源，github actions自动构建，安全，可自定义构建需要的环境
+  - 镜像文件小
+  - 解决官方镜像redis不能正常启动等问题
+  - 面板版本随官方安装脚本更新
 - 可使用host网络模式部署，也可使用macvlan网络模式部署作为独立主机（在特权模式下可设置单独的防火墙）
 - github: https://github.com/eyunzhu/baota
 - docker: https://hub.docker.com/r/eyunzhu/baota
@@ -9,13 +14,21 @@
 ## 镜像简介
 
 
-1. `baota:minimal` 仅安装了最新版宝塔面板
+1. `baota:minimal` 仅安装了最新版宝塔面板，未装运行环境软件
    
 2. `baota:lnmp` 安装了完整的LNMP环境(nginx1.24,mysql5.7,php7.4/8.2,phpmyadmin5.1,redis7.2)
 
 ## 镜像使用
 
-1. 镜像运行命令
+1. 目录挂载说明
+   1. 可自由挂载`/www`及其之下的任何目录
+   2. 建议直接挂载到`/www`，包含全部的运行环境，方便全息备份，迁移数据，重新部署
+   3. 也可按需最小化挂载
+      - 容器里面的网站数据目录：`/www/wwwroot`
+      - MySQL数据目录：`/www/server/data`
+      - vhost文件路径：`/www/server/panel/vhost`
+   
+2. 镜像基本运行命令
 
    ```bash
    # 普通模式
@@ -24,25 +37,22 @@
    # 特权模式 可单独设置iptables防火墙
    docker run -d --privileged --entrypoint="/bin/bash" eyunzhu/baota:lnmp -c "/usr/local/bin/boot.sh & exec /lib/systemd/systemd"
    ```
-2. 面板基本信息
+3. 面板基本信息
    1. 面板管理地址：`http://您的ip地址:8888/btpanel`
    2. 默认用户：`username`
-   3. 默认密码：`password`
-3. 目录 （宝塔默认未更改）
-   1. 容器里面的网站数据目录：`/www/wwwroot`
-   2. MySQL数据目录：`/www/server/data`
-   3. vhost文件路径：`/www/server/panel/vhost`
+   3. 默认密码：`password`     
+
 4. 常用部署命令记录
    ```bash
    # 普通模式
-   docker run -d --name='bt_1' --net macvlan-net --ip 192.168.1.211 eyunzhu/baota:lnmp
+   docker run -d --restart=unless-stopped --name='bt_1' -v /local/www:/www --net macvlan-net --ip 192.168.1.211 eyunzhu/baota:lnmp
    
    # 特权模式 使用macvlan 可单独设置iptables防火墙
-   docker run -d --privileged --name='bt_2' --net macvlan-net --ip 192.168.1.201 --entrypoint="/bin/bash" eyunzhu/baota:lnmp -c "/usr/local/bin/boot.sh & exec /lib/systemd/systemd"
+   docker run -d --restart=unless-stopped --privileged --name='bt_2' -v /local/www:/www --net macvlan-net --ip 192.168.1.201 --entrypoint="/bin/bash" eyunzhu/baota:lnmp -c "/usr/local/bin/boot.sh & exec /lib/systemd/systemd"
    ```
 5. 其他
    
-   1. ssh开关默认关闭，若使用请到面板ssh管理打开，以及修改root密码
+   1. 若使用ssh,请到面板->安全->ssh管理->修改root密码
 
 
 
