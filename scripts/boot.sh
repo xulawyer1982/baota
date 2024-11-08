@@ -9,7 +9,7 @@ if [ -f /www_backup.tar.gz ]; then
   # www目录为空 并且/www.tar.gz存在
   # 还原数据
   echo "初始化：还原面板数据"
-  tar xzf /www_backup.tar.gz -C /
+  tar xzf /www_backup.tar.gz -C / --skip-old-files
   rm -rf /www_backup.tar.gz
 fi
 
