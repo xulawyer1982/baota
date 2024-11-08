@@ -1,6 +1,6 @@
 # 宝塔面板Docker镜像
 
-基于Debian12构建的宝塔面板镜像，为dockerfile使用宝塔官方脚本自动构建，无人工干预，安全有保障，dockerfile公开可自定义构建
+基于Debian12构建的宝塔面板镜像，为dockerfile使用宝塔官方脚本github Actions自动构建，无人工干预，安全有保障，dockerfile公开可自定义构建
 
 面板版本随官方安装脚本更新
 
@@ -48,6 +48,10 @@ docker: https://hub.docker.com/r/eyunzhu/baota
    # 特权模式 使用macvlan 可单独设置iptables防火墙
    docker run -d --privileged --name='bt_2' --net macvlan-net --ip 192.168.1.201 --entrypoint="/bin/bash" eyunzhu/baota:lnmp -c "/usr/local/bin/boot.sh & exec /lib/systemd/systemd"
    ```
+5. 其他
+   
+   1. ssh开关默认关闭，若使用请到面板ssh管理打开，以及修改root密码
+
 
 
 ## 自主构建镜像方法

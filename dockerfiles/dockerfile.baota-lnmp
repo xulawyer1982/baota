@@ -16,6 +16,7 @@ RUN cd /www/server/panel/install \
     && bash install_soft.sh 4 install phpmyadmin 5.1 \ 
     # 备份并清空数据库data目录，一方面可以减少镜像大小，另一方面可以解决挂载目录时data被宿主机覆盖的问题
     && /etc/init.d/mysqld stop \
+    && rm /www/server/data/ib_logfile* \
     && cd /www/server \
     && tar czf /www/server/data_backup.tar.gz -C /www/server data \
     && rm -rf /www/server/data/* \
