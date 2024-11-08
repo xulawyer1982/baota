@@ -18,10 +18,11 @@ fi
 /usr/bin/bt stop
 /usr/bin/bt start
 
-# 扫描并启动所有服务
+# 扫描并重启所有服务
 init_scripts=$(ls /etc/init.d)
+  echo "扫描并重启所有服务"
   for script in ${init_scripts}; do
-      /etc/init.d/${script} start
+      /etc/init.d/${script} restart
 done
 
 
