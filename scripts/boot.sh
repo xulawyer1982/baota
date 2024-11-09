@@ -10,6 +10,10 @@ if [ -f /www_backup.tar.gz ]; then
   echo "【初始化：还原面板数据】"
   tar xzf /www_backup.tar.gz -C / --skip-old-files
   rm -rf /www_backup.tar.gz
+  # 如果mysql存在则重启 因为压缩之前删除了ib_logfile*
+  if [ -f /etc/init.d/mysqld ]; then
+    /etc/init.d/mysqld restart
+  fi
 fi
 
 
