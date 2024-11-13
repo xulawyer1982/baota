@@ -28,6 +28,8 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debia
     openssh-server \
     libc-ares2 \
     libonig5 \
+    libzip-dev \
+    autoconf \
     && wget -4 --no-check-certificate -O install.sh https://download.bt.cn/install/install_lts.sh \
     # 取消宝塔安装检查
     && sed -i '/Ready_Check$/ s/^/#/' install.sh \
