@@ -11,8 +11,10 @@ RUN tar xzf /www_backup.tar.gz -C / \
     && rm -rf /www_backup.tar.gz \
     && cd /www/server/panel/install \
     && bash install_soft.sh 4 install php 7.4 \ 
-    && bash install_soft.sh 4 install php 8.2 \  
-    && bash install_soft.sh 4 install redis 7.2 \ 
+    && bash install_soft.sh 4 install php 8.3 \  
+    && bash install_soft.sh 4 install redis 8.3 \
+    && bash install_soft.sh 4 install fileinfo 8.3 \ 
+    && bash install_soft.sh 4 install mbstring 8.3 \ 
     && bash install_soft.sh 0 install nginx 1.24 \ 
     && bash install_soft.sh 4 install mysql 5.7 \ 
     && bash install_soft.sh 4 install phpmyadmin 5.1 \ 
