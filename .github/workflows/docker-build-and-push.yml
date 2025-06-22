@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'Docker image tag (e.g., v9.0.0_1.0)宝塔版本+构建版本'
+        description: 'Docker image tag (e.g., v9.6.0_1.0)宝塔版本+构建版本'
         required: true
-        default: 'latest'
+        default: 'v9.6.0_1.0'
 
 jobs:
   build:
