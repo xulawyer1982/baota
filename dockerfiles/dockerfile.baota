@@ -12,6 +12,7 @@ ARG BT_PASSWORD="password"
 
 COPY scripts/boot.sh /usr/local/bin/boot.sh
 COPY scripts/iptables-rules.sh /usr/local/bin/iptables-rules.sh
+COPY scripts/ports.conf /etc/iptables/ports.conf
 
 # 第一阶段：更新源和安装基础软件包
 RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources && \
@@ -31,6 +32,10 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debia
     cron \
     locales \
     systemd \
+    # systemd-sysv 是 systemd 的兼容层，确保 /sbin/init 存在
+    systemd-sysv \
+    # wireguard-tools 包含了 wg 等 WireGuard 相关工具
+    wireguard-tools \
     dbus \
     net-tools \
     openssh-server \
@@ -40,6 +45,11 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debia
     autoconf && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# 为 systemd 创建必要的目录和链接
+# 确保 /sbin/init 存在并指向 systemd
+RUN mkdir -p /run/systemd && \
+    ln -sf /lib/systemd/systemd /sbin/init
 
 # 第二阶段：下载和安装宝塔面板
 RUN wget -4 --no-check-certificate -O install.sh "${BT_INSTALL_SH_URL}" && \

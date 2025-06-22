@@ -1,73 +1,129 @@
 #!/bin/bash
-
-# 当前脚本会在容器启动时执行 
-
+# 当前脚本会在容器启动时执行
 # 用途：解决容器重启防火墙规则消失的问题、容器中iptables规则异常的问题
 # 脚本位置：/usr/local/bin/iptables-rules.sh
+# 配置文件位置：/etc/iptables/ports.conf
+# 注意：本脚本通过读取配置文件来开放端口，请勿直接修改脚本内部的端口列表。
 
-# 注意：要放行端口只需修改ports数组即可，切勿修改其他地方
-#      反正就目前文件执行不会出问题，不要修改执行顺序之类的
-#      目前发现使用 iptables -P INPUT DROP 或者 iptables -A INPUT -j DROP 会出现问题。所以目前不使用
+# --- 配置区 ---
+# 定义端口配置文件的路径
+PORTS_CONFIG_FILE="/etc/iptables/ports.conf"
 
+# --- 核心逻辑 ---
 
-# 放行端口 在这里修改
-# 手动修改后可运行当前脚本生效： /usr/local/bin/iptables-rules.sh
-# 已经加入Systemd服务会容器启动会自动运行
+# 函数：记录消息到标准输出
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - [IPTABLES SCRIPT] $1"
+}
 
-ports=(22 80 443 8888)
+# 函数：处理并设置指定IP版本的iptables规则
+set_iptables_rules() {
+    local ip_version="$1" # "ipv4" 或 "ipv6"
+    local ipt_cmd=""
+    local msg_prefix=""
 
-# 清空已有规则
-iptables -F INPUT
-iptables -F FORWARD
-iptables -F OUTPUT
-iptables -X
-iptables -Z
+    if [[ "$ip_version" == "ipv4" ]]; then
+        ipt_cmd="iptables"
+        msg_prefix="IPv4"
+    elif [[ "$ip_version" == "ipv6" ]]; then
+        ipt_cmd="ip6tables"
+        msg_prefix="IPv6"
+    else
+        log_message "错误: 未知的 IP 版本 '$ip_version'"
+        return 1
+    fi
 
-ip6tables -F INPUT
-ip6tables -F FORWARD
-ip6tables -F OUTPUT
-ip6tables -X
-ip6tables -Z
+    log_message "--- 配置 $msg_prefix 防火墙规则开始 ---"
 
-# 设置默认策略为ACCEPT
-iptables -P INPUT ACCEPT
-iptables -P FORWARD ACCEPT
-iptables -P OUTPUT ACCEPT
+    # 1. 清空所有链的规则，并删除用户自定义链
+    log_message "清空 $msg_prefix 已有规则..."
+    "$ipt_cmd" -F INPUT || { log_message "清空 $msg_prefix INPUT 链失败"; return 1; }
+    "$ipt_cmd" -F FORWARD || { log_message "清空 $msg_prefix FORWARD 链失败"; return 1; }
+    "$ipt_cmd" -F OUTPUT || { log_message "清空 $msg_prefix OUTPUT 链失败"; return 1; }
+    "$ipt_cmd" -X || { log_message "删除 $msg_prefix 用户自定义链失败"; return 1; }
+    "$ipt_cmd" -Z || { log_message "清零 $msg_prefix 计数器失败"; return 1; }
 
-ip6tables -P INPUT ACCEPT
-ip6tables -P FORWARD ACCEPT
-ip6tables -P OUTPUT ACCEPT
+    # 2. 设置默认策略为 DROP，这是最安全的起点
+    log_message "设置 $msg_prefix 默认策略为 INPUT/FORWARD DROP, OUTPUT ACCEPT..."
+    "$ipt_cmd" -P INPUT DROP || { log_message "设置 $msg_prefix INPUT 策略为 DROP 失败"; return 1; }
+    "$ipt_cmd" -P FORWARD DROP || { log_message "设置 $msg_prefix FORWARD 策略为 DROP 失败"; return 1; }
+    "$ipt_cmd" -P OUTPUT ACCEPT || { log_message "设置 $msg_prefix OUTPUT 策略为 ACCEPT 失败"; return 1; }
 
-# 允许回环接口（本地通信）
-iptables -A INPUT -i lo -j ACCEPT
-ip6tables -A INPUT -i lo -j ACCEPT
+    # 3. 允许回环接口（本地通信）
+    log_message "允许 $msg_prefix 回环接口 (lo)..."
+    "$ipt_cmd" -A INPUT -i lo -j ACCEPT || { log_message "允许 $msg_prefix lo 接口失败"; return 1; }
 
-# 拒绝所有端口tcp和udp 
-# 这里使用端口范围的方式，
-# 不可使用'iptables -A INPUT -j DROP','iptables -P INPUT DROP'
-# 貌似要在允许端口之前执行 否则有问题
-iptables -A INPUT -p tcp --dport 0:65535 -j DROP
-iptables -A INPUT -p udp --dport 0:65535 -j DROP
-ip6tables -A INPUT -p tcp --dport 0:65535 -j DROP
-ip6tables -A INPUT -p udp --dport 0:65535 -j DROP
+    # 4. 允许已建立或相关的连接通过
+    log_message "允许 $msg_prefix 已建立或相关的连接..."
+    "$ipt_cmd" -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT || { log_message "允许 $msg_prefix ESTABLISHED,RELATED 连接失败"; return 1; }
 
-# 允许已建立或相关的连接通过
-iptables -I INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-ip6tables -I INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    # 5. 读取配置文件并开放指定端口
+    if [[ ! -f "$PORTS_CONFIG_FILE" ]]; then
+        log_message "警告: 端口配置文件 '$PORTS_CONFIG_FILE' 不存在。未开放任何端口。"
+        return 0
+    fi
 
-# 开放端口
-for port in "${ports[@]}"; do
-    iptables -I INPUT -p tcp --dport "$port" -j ACCEPT && echo "iptables允许 TCP 端口 $port"
-    iptables -I INPUT -p udp --dport "$port" -j ACCEPT && echo "iptables允许 UDP 端口 $port"
-    echo -e ''
-    ip6tables -I INPUT -p tcp --dport "$port" -j ACCEPT && echo "ip6tables允许 TCP 端口 $port"
-    ip6tables -I INPUT -p udp --dport "$port" -j ACCEPT && echo "ip6tables允许 UDP 端口 $port"
-    echo -e '---------------------------'
-done
+    log_message "从配置文件 '$PORTS_CONFIG_FILE' 读取端口规则..."
+    while IFS= read -r line; do
+        # 移除行首尾空格
+        line=$(echo "$line" | xargs)
+        # 跳过空行和注释行
+        [[ -z "$line" || "$line" =~ ^# ]] && continue
 
-echo -e ''
-iptables -L INPUT -v -n --line-numbers
-echo -e ''
-ip6tables -L INPUT -v -n --line-numbers
+        local port_spec="$line"
+        local port_range=""
+        local protocol=""
 
-echo -e '-------  iptables-rules.sh 结束  -------'
+        # 检查是否指定了协议 (e.g., 80/tcp, 443/udp)
+        if [[ "$port_spec" =~ ^([0-9]+(-[0-9]+)?)/(tcp|udp)$ ]]; then
+            port_range="${BASH_REMATCH[1]}"
+            protocol="${BASH_REMATCH[3]}"
+        else
+            port_range="$port_spec"
+        fi
+
+        # 处理端口范围或单个端口
+        if [[ "$port_range" =~ ^[0-9]+-[0-9]+$ ]]; then
+            # 端口范围
+            local start_port=$(echo "$port_range" | cut -d'-' -f1)
+            local end_port=$(echo "$port_range" | cut -d'-' -f2)
+
+            if [[ -z "$protocol" || "$protocol" == "tcp" ]]; then
+                "$ipt_cmd" -A INPUT -p tcp --dport "$start_port":"$end_port" -j ACCEPT || { log_message "允许 $msg_prefix TCP 端口范围 $port_range 失败"; }
+                log_message "$msg_prefix 允许 TCP 端口范围 $port_range"
+            fi
+            if [[ -z "$protocol" || "$protocol" == "udp" ]]; then
+                "$ipt_cmd" -A INPUT -p udp --dport "$start_port":"$end_port" -j ACCEPT || { log_message "允许 $msg_prefix UDP 端口范围 $port_range 失败"; }
+                log_message "$msg_prefix 允许 UDP 端口范围 $port_range"
+            fi
+        elif [[ "$port_range" =~ ^[0-9]+$ ]]; then
+            # 单个端口
+            local single_port="$port_range"
+
+            if [[ -z "$protocol" || "$protocol" == "tcp" ]]; then
+                "$ipt_cmd" -A INPUT -p tcp --dport "$single_port" -j ACCEPT || { log_message "允许 $msg_prefix TCP 端口 $single_port 失败"; }
+                log_message "$msg_prefix 允许 TCP 端口 $single_port"
+            fi
+            if [[ -z "$protocol" || "$protocol" == "udp" ]]; then
+                "$ipt_cmd" -A INPUT -p udp --dport "$single_port" -j ACCEPT || { log_message "允许 $msg_prefix UDP 端口 $single_port 失败"; }
+                log_message "$msg_prefix 允许 UDP 端口 $single_port"
+            fi
+        else
+            log_message "警告: 配置文件中包含无效的端口规则: '$line'"
+        fi
+    done < "$PORTS_CONFIG_FILE"
+
+    # 6. 显示最终规则
+    log_message "$msg_prefix INPUT 链最终规则:"
+    "$ipt_cmd" -L INPUT -v -n --line-numbers
+
+    log_message "--- 配置 $msg_prefix 防火墙规则结束 ---"
+    echo "" # 添加空行用于分隔不同 IP 版本的输出
+    return 0
+}
+
+# --- 执行规则设置 ---
+log_message "------- iptables-rules.sh 脚本开始执行 -------"
+set_iptables_rules "ipv4"
+set_iptables_rules "ipv6"
+log_message "------- iptables-rules.sh 脚本执行完毕 -------"
