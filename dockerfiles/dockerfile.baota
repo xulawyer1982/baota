@@ -10,10 +10,10 @@ ARG BT_PANEL_PATH="btpanel"
 ARG BT_USERNAME="username"
 ARG BT_PASSWORD="password"
 
-
 COPY scripts/boot.sh /usr/local/bin/boot.sh
 COPY scripts/iptables-rules.sh /usr/local/bin/iptables-rules.sh
 
+# 第一阶段：更新源和安装基础软件包
 RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -37,35 +37,33 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debia
     libc-ares2 \
     libonig5 \
     libzip-dev \
-    autoconf \
-    && wget -4 --no-check-certificate -O install.sh "${BT_INSTALL_SH_URL}" \
-    # 取消宝塔安装检查
-    && sed -i '/Ready_Check$/ s/^/#/' install.sh \
-    # 取消宝塔防火墙设置
-    && sed -i '/Set_Firewall$/ s/^/#/' install.sh \
-    && bash install.sh -P "${BT_PANEL_PORT}" --safe-path "${BT_PANEL_PATH}" --ssl-disable -y \
-    && echo "${BT_USERNAME}" | bt 6 && echo "${BT_PASSWORD}" | bt 5 \
-    # 开启ipv6访问面板
-    && echo '::' > /www/server/panel/data/ipv6.pl \
-    # 将防火墙设置为 iptables-legacy
-    && update-alternatives --set iptables /usr/sbin/iptables-legacy \
-    && update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy \
-    && sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen  \
-    && locale-gen \
-    && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone \
-    # 设置boot.sh脚本权限
-    && chmod +x /usr/local/bin/boot.sh \
-    && sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config \
-    # 压缩删除/www 解决挂载目录时被宿主机覆盖的问题
-    && rm -rf /www/reserve_space.pl \
-    && tar czf /www_backup.tar.gz -C / www \
-    && rm -rf /www \
-    # 清理
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /www/reserve_space.pl \
-    && rm -rf /var/log/* 
+    autoconf && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# 第二阶段：下载和安装宝塔面板
+RUN wget -4 --no-check-certificate -O install.sh "${BT_INSTALL_SH_URL}" && \
+    sed -i '/Ready_Check$/ s/^/#/' install.sh && \
+    sed -i '/Set_Firewall$/ s/^/#/' install.sh && \
+    bash install.sh -P "${BT_PANEL_PORT}" --safe-path "${BT_PANEL_PATH}" --ssl-disable -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# 第三阶段：配置宝塔面板和系统设置
+RUN echo "${BT_USERNAME}" | bt 6 && echo "${BT_PASSWORD}" | bt 5 && \
+    echo '::' > /www/server/panel/data/ipv6.pl && \
+    update-alternatives --set iptables /usr/sbin/iptables-legacy && \
+    update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy && \
+    sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    locale-gen && \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone && \
+    chmod +x /usr/local/bin/boot.sh && \
+    sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    rm -rf /www/reserve_space.pl && \
+    tar czf /www_backup.tar.gz -C / www && \
+    rm -rf /www && \
+    rm -rf /var/log/*
 
 STOPSIGNAL SIGRTMIN+3
 ENTRYPOINT ["/usr/local/bin/boot.sh"]
