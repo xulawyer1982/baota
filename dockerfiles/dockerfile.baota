@@ -3,6 +3,14 @@ LABEL maintainer="eyunzhu <mail@eyunzhu.com>"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# 使用 ARG 定义构建时变量（可在构建时覆盖）
+ARG BT_INSTALL_SH_URL="https://download.bt.cn/install/install_panel.sh"
+ARG BT_PANEL_PORT=8888
+ARG BT_PANEL_PATH="btpanel"
+ARG BT_USERNAME="username"
+ARG BT_PASSWORD="password"
+
+
 COPY scripts/boot.sh /usr/local/bin/boot.sh
 COPY scripts/iptables-rules.sh /usr/local/bin/iptables-rules.sh
 
@@ -30,13 +38,13 @@ RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debia
     libonig5 \
     libzip-dev \
     autoconf \
-    && wget -4 --no-check-certificate -O install.sh https://download.bt.cn/install/install_lts.sh \
+    && wget -4 --no-check-certificate -O install.sh "${BT_INSTALL_SH_URL}" \
     # 取消宝塔安装检查
     && sed -i '/Ready_Check$/ s/^/#/' install.sh \
     # 取消宝塔防火墙设置
     && sed -i '/Set_Firewall$/ s/^/#/' install.sh \
-    && bash install.sh -P 8888 --safe-path "btpanel" --ssl-disable -y \
-    && echo username|bt 6 && echo password|bt 5 \
+    && bash install.sh -P "${BT_PANEL_PORT}" --safe-path "${BT_PANEL_PATH}" --ssl-disable -y \
+    && echo "${BT_USERNAME}" | bt 6 && echo "${BT_PASSWORD}" | bt 5 \
     # 开启ipv6访问面板
     && echo '::' > /www/server/panel/data/ipv6.pl \
     # 将防火墙设置为 iptables-legacy
