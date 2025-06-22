@@ -8,8 +8,10 @@
 if [ -f /www_backup.tar.gz ]; then
   # www目录为空 并且/www.tar.gz存在
   echo "【初始化：还原面板数据】"
+  echo "进行中...请等待完成..."
   tar xzf /www_backup.tar.gz -C / --skip-old-files
   rm -rf /www_backup.tar.gz
+  echo "【初始化：还原面板数据完成】"
   # 如果mysql存在则重启 因为压缩之前删除了ib_logfile*
   if [ -f /etc/init.d/mysqld ]; then
     /etc/init.d/mysqld restart
@@ -17,12 +19,12 @@ if [ -f /www_backup.tar.gz ]; then
 fi
 
 
-# 启动面板
+echo -e "【重启宝塔面板】"
 /usr/bin/bt stop
 /usr/bin/bt start
 
 
-# 扫描并启动服务
+echo -e "【扫描并启动服务】"
 for script in /etc/init.d/*; do
     if [[ "$script" =~ ^/etc/init.d/(bt|mysqld|nginx|httpd|php-fpm-74|php-fpm-82)$ ]]; then
         echo -e "【启动 ${script##*/}】"
