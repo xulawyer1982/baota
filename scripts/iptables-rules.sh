@@ -57,6 +57,24 @@ set_iptables_rules() {
     log_message "允许 $msg_prefix 已建立或相关的连接..."
     "$ipt_cmd" -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT || { log_message "允许 $msg_prefix ESTABLISHED,RELATED 连接失败"; return 1; }
 
+    # 在设置完基本规则后，添加IPv6特殊规则
+    if [[ "$ip_version" == "ipv6" ]]; then
+        log_message "添加IPv6特殊规则..."
+        
+        # 放行ICMPv6（IPv6网络基础协议）
+        "$ipt_cmd" -A INPUT -p ipv6-icmp -j ACCEPT || { log_message "允许ICMPv6失败"; return 1; }
+        
+        # 放行邻居发现协议(NDP)所需的多播地址
+        "$ipt_cmd" -A INPUT -d ff02::/16 -p udp -j ACCEPT || { log_message "允许NDP多播失败"; return 1; }
+        
+        # 放行DHCPv6通信（如果使用）
+        "$ipt_cmd" -A INPUT -p udp --dport 546 -j ACCEPT || { log_message "允许DHCPv6失败"; return 1; }
+    fi
+
+    if [[ "$ip_version" == "ipv4" ]]; then
+        "$ipt_cmd" -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+    fi
+
     # 5. 读取配置文件并开放指定端口
     if [[ ! -f "$PORTS_CONFIG_FILE" ]]; then
         log_message "警告: 端口配置文件 '$PORTS_CONFIG_FILE' 不存在。未开放任何端口。"
@@ -121,6 +139,10 @@ set_iptables_rules() {
     echo "" # 添加空行用于分隔不同 IP 版本的输出
     return 0
 }
+
+if [[ $(cat /proc/sys/net/ipv6/conf/all/disable_ipv6) == "1" ]]; then
+    log_message "警告：系统IPv6支持已禁用，IPv6规则将不会生效"
+fi
 
 # --- 执行规则设置 ---
 log_message "------- iptables-rules.sh 脚本开始执行 -------"

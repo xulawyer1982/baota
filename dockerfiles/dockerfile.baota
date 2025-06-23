@@ -59,8 +59,12 @@ RUN wget -4 --no-check-certificate -O install.sh "${BT_INSTALL_SH_URL}" && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# 第三阶段：配置宝塔面板和系统设置
-RUN echo "${BT_USERNAME}" | bt 6 && echo "${BT_PASSWORD}" | bt 5 && \
+# 第三阶段：启用ipv6 配置宝塔面板和系统设置
+RUN echo "net.ipv6.conf.all.disable_ipv6 = 0" >> /etc/sysctl.conf && \
+    echo "net.ipv6.conf.default.disable_ipv6 = 0" >> /etc/sysctl.conf && \
+    echo "net.ipv6.conf.lo.disable_ipv6 = 0" >> /etc/sysctl.conf && \
+    sysctl -p && \ 
+    echo "${BT_USERNAME}" | bt 6 && echo "${BT_PASSWORD}" | bt 5 && \
     echo '::' > /www/server/panel/data/ipv6.pl && \
     update-alternatives --set iptables /usr/sbin/iptables-legacy && \
     update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy && \
@@ -69,6 +73,7 @@ RUN echo "${BT_USERNAME}" | bt 6 && echo "${BT_PASSWORD}" | bt 5 && \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone && \
     chmod +x /usr/local/bin/boot.sh && \
+    chmod +x /usr/local/bin/iptables-rules.sh && \
     sed -i 's/^#*PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
     rm -rf /www/reserve_space.pl && \
     tar czf /www_backup.tar.gz -C / www && \
