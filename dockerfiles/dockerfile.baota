@@ -63,7 +63,6 @@ RUN wget -4 --no-check-certificate -O install.sh "${BT_INSTALL_SH_URL}" && \
 RUN echo "net.ipv6.conf.all.disable_ipv6 = 0" >> /etc/sysctl.conf && \
     echo "net.ipv6.conf.default.disable_ipv6 = 0" >> /etc/sysctl.conf && \
     echo "net.ipv6.conf.lo.disable_ipv6 = 0" >> /etc/sysctl.conf && \
-    sysctl -p && \ 
     echo "${BT_USERNAME}" | bt 6 && echo "${BT_PASSWORD}" | bt 5 && \
     echo '::' > /www/server/panel/data/ipv6.pl && \
     update-alternatives --set iptables /usr/sbin/iptables-legacy && \
