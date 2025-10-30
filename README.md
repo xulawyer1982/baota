@@ -8,8 +8,7 @@
   - lnmp的镜像解决了官方镜像redis不能正常启动等问题(或者自行参考[宝塔容器非特权模式，redis无法启动的问题](https://github.com/eyunzhu/baota/blob/e0b85ba86b63bbb1997017424571de299b05a10d/scripts/boot.sh#L36C13-L38C76)解决)
   - 面板版本随官方安装脚本更新
 - 可使用host网络模式部署，也可使用macvlan网络模式部署作为独立主机（在特权模式下可设置单独的防火墙）
-- github: https://github.com/eyunzhu/baota
-- docker: https://hub.docker.com/r/eyunzhu/baota
+
 
 ## 镜像简介
 
