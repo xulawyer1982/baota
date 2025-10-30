@@ -15,7 +15,7 @@
 
 1. `baota:minimal` 仅安装了最新版宝塔面板，未装运行环境软件
    
-2. `baota:lnmp` 安装了完整的LNMP环境(nginx1.24,mysql5.7,php7.4/8.2,phpmyadmin5.1,redis7.2)
+2. `baota:lnmp` 安装了完整的LNMP环境(nginx1.24,mysql8.4,php8.3,phpmyadmin5.1,redis7.2)
 
 ## 镜像使用
 
@@ -27,19 +27,9 @@
       - MySQL数据目录：`/www/server/data`
       - vhost文件路径：`/www/server/panel/vhost`
    
-2. 镜像基本运行命令
-
-   ```bash
-   # 普通模式
-   docker run -d eyunzhu/baota:lnmp
-   
-   # 特权模式 可单独设置iptables防火墙
-   docker run -d --privileged --entrypoint="/bin/bash" eyunzhu/baota:lnmp -c "/usr/local/bin/boot.sh & exec /lib/systemd/systemd"
+2. 
    ```
-3. 面板基本信息
-   1. 面板管理地址：`http://您的ip地址:8888/btpanel`
-   2. 默认用户：`username`
-   3. 默认密码：`password`     
+3. 
 
 4. 常用部署命令记录
    ```bash
