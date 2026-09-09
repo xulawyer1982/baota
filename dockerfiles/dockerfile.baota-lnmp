@@ -1,4 +1,4 @@
-FROM eyunzhu/baota:minimal
+FROM xulawyer/baota:minimal
 LABEL maintainer="eyunzhu <mail@eyunzhu.com>"
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -11,7 +11,6 @@ RUN tar xzf /www_backup.tar.gz -C / \
     && rm -rf /www_backup.tar.gz \
     && cd /www/server/panel/install \
     && bash install_soft.sh 4 install php 7.4 \ 
-    && bash install_soft.sh 4 install php 8.3 \  
     && bash install_soft.sh 4 install redis 8.3 \
     && bash install_soft.sh 4 install fileinfo 8.3 \ 
     && bash install_soft.sh 4 install mbstring 8.3 \ 
