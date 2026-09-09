@@ -1,5 +1,5 @@
 ARG BASE_TAG=minimal
-FROM xulawyer/baota:${BASE_TAG}
+FROM registry.cn-shanghai.aliyuncs.com/xulawyer985/baota:${BASE_TAG}
 LABEL maintainer="eyunzhu <mail@eyunzhu.com>"
 
 ENV DEBIAN_FRONTEND=noninteractive
