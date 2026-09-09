@@ -63,10 +63,7 @@ jobs:
     - name: Push minimal image to Docker Hub
       run: |
         docker push registry.cn-shanghai.aliyuncs.com/xulawyer985/baota:minimal
-        docker push registry.cn-shanghai.aliyuncs.com/xulawyer985/baota:latest
-        docker push registry.cn-shanghai.aliyuncs.com/xulawyer985/baota:minimal-${{ github.event.inputs.image_tag }}
-
+       
     - name: Push LNMP image to Docker Hub
       run: |
         docker push registry.cn-shanghai.aliyuncs.com/xulawyer985/baota:lnmp
-        docker push registry.cn-shanghai.aliyuncs.com/xulawyer985/baota:lnmp-${{ github.event.inputs.image_tag }}
