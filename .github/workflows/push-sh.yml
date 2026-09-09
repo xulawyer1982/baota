@@ -12,12 +12,13 @@ on:
         required: true
         default: 'both'
         type: choice
-        options: [minimal, lnmp, both]
+        options:
+          - both
+          - minimal
+          - lnmp
 
 env:
-  REGISTRY: registry.cn-shanghai.aliyuncs.com
-  NAMESPACE: xulawyer985
-  IMAGE: baota
+  IMG: registry.cn-shanghai.aliyuncs.com/xulawyer985/baota
 
 jobs:
   build:
@@ -28,40 +29,61 @@ jobs:
           - arch: amd64
             runner: ubuntu-latest
           - arch: arm64
-            runner: ubuntu-24.04-arm   
+            runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Aliyun ACR
+        uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: registry.cn-shanghai.aliyuncs.com
           username: ${{ secrets.ALIYUN_USERNAME }}
           password: ${{ secrets.ALIYUN_PASSWORD }}
 
-      - name: Build & push minimal-${{ matrix.arch }}
+      # ---------- 1. 先构建，全部本地完成 ----------
+      - name: Build minimal-${{ matrix.arch }}
         if: ${{ github.event.inputs.build_type != 'lnmp' }}
         run: |
-          docker build -t $REGISTRY/$NAMESPACE/$IMAGE:minimal-${{ matrix.arch }} \
-            -f ./dockerfiles/dockerfile.baota .
-          docker push $REGISTRY/$NAMESPACE/$IMAGE:minimal-${{ matrix.arch }}
+          docker build -t $IMG:minimal-${{ matrix.arch }} \
+            -f ./dockerfiles/dockerfile.baota . || exit 1
 
-      - name: Build & push lnmp-${{ matrix.arch }}
+      - name: Build lnmp-${{ matrix.arch }}
         if: ${{ github.event.inputs.build_type != 'minimal' }}
         run: |
-          docker build --build-arg BASE_TAG=minimal-${{ matrix.arch }} \
-            -t $REGISTRY/$NAMESPACE/$IMAGE:lnmp-${{ matrix.arch }} \
-            -f ./dockerfiles/dockerfile.baota-lnmp .
-          docker push $REGISTRY/$NAMESPACE/$IMAGE:lnmp-${{ matrix.arch }}
+          # 只编 lnmp 时本地没有 minimal，需先从仓库拉下来
+          if [ "${{ github.event.inputs.build_type }}" = "lnmp" ]; then
+            docker pull $IMG:minimal-${{ matrix.arch }} || exit 1
+          fi
+          docker build --pull=false \
+            --build-arg BASE_TAG=minimal-${{ matrix.arch }} \
+            -t $IMG:lnmp-${{ matrix.arch }} \
+            -f ./dockerfiles/dockerfile.baota-lnmp . || exit 1
+
+      # ---------- 2. 全部构建成功后，再统一推送 ----------
+      - name: Push images
+        run: |
+          if [ "${{ github.event.inputs.build_type }}" != "lnmp" ]; then
+            docker push $IMG:minimal-${{ matrix.arch }} || exit 1
+          fi
+          if [ "${{ github.event.inputs.build_type }}" != "minimal" ]; then
+            docker push $IMG:lnmp-${{ matrix.arch }} || exit 1
+          fi
 
   manifest:
     needs: build
     runs-on: ubuntu-latest
+
     steps:
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Aliyun ACR
+        uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: registry.cn-shanghai.aliyuncs.com
           username: ${{ secrets.ALIYUN_USERNAME }}
           password: ${{ secrets.ALIYUN_PASSWORD }}
 
@@ -69,16 +91,16 @@ jobs:
         if: ${{ github.event.inputs.build_type != 'lnmp' }}
         run: |
           docker buildx imagetools create \
-            -t $REGISTRY/$NAMESPACE/$IMAGE:minimal \
-            -t $REGISTRY/$NAMESPACE/$IMAGE:minimal-${{ github.event.inputs.image_tag }} \
-            $REGISTRY/$NAMESPACE/$IMAGE:minimal-amd64 \
-            $REGISTRY/$NAMESPACE/$IMAGE:minimal-arm64
+            -t $IMG:minimal \
+            -t $IMG:minimal-${{ github.event.inputs.image_tag }} \
+            $IMG:minimal-amd64 \
+            $IMG:minimal-arm64
 
       - name: Create manifest lnmp
         if: ${{ github.event.inputs.build_type != 'minimal' }}
         run: |
           docker buildx imagetools create \
-            -t $REGISTRY/$NAMESPACE/$IMAGE:lnmp \
-            -t $REGISTRY/$NAMESPACE/$IMAGE:lnmp-${{ github.event.inputs.image_tag }} \
-            $REGISTRY/$NAMESPACE/$IMAGE:lnmp-amd64 \
-            $REGISTRY/$NAMESPACE/$IMAGE:lnmp-arm64
+            -t $IMG:lnmp \
+            -t $IMG:lnmp-${{ github.event.inputs.image_tag }} \
+            $IMG:lnmp-amd64 \
+            $IMG:lnmp-arm64
