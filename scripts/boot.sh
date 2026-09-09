@@ -27,7 +27,7 @@ echo -e "【重启宝塔面板】"
 
 echo -e "【扫描并启动服务】"
 for script in /etc/init.d/*; do
-    if [[ "$script" =~ ^/etc/init.d/(bt|mysqld|nginx|httpd|php-fpm-74|php-fpm-82)$ ]]; then
+    if [[ "$script" =~ ^/etc/init.d/(bt|mysqld|nginx|httpd|php-fpm-74)$ ]]; then
         echo -e "【启动 ${script##*/}】"
         ${script} start
     else if [[ "$script" =~ ^/etc/init.d/(redis)$ ]]; then
