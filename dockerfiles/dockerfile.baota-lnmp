@@ -7,6 +7,14 @@ ENV DEBIAN_FRONTEND=noninteractive
 # aarch64 没有官方预编译包，全部走编译安装（install_soft.sh 第 1 个参数 0=编译，1/4=极速）
 RUN tar xzf /www_backup.tar.gz -C / \
     && rm -rf /www_backup.tar.gz \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        gcc g++ make cmake pkg-config \
+        libxml2-dev libsqlite3-dev libcurl4-openssl-dev libssl-dev \
+        libonig-dev libzip-dev libpng-dev libjpeg-dev libfreetype6-dev \
+        libwebp-dev libvpx-dev libsodium-dev \
+        libncurses5-dev libreadline-dev bison libtinfo-dev \
+        libpcre3-dev zlib1g-dev \
     && localedef -i en_US -f UTF-8 en_US.UTF-8 2>/dev/null || true \
     && sed -i 's/^export LANG=en_US.UTF-8/export LANG=C.UTF-8/' /www/server/panel/install/public.sh \
     && cd /www/server/panel/install \
