@@ -7,15 +7,6 @@ on:
         description: 'Docker image tag (e.g., v9.6.0_1.0)宝塔版本+构建版本'
         required: true
         default: 'v88_1.0'
-      build_type:
-        description: '构建 minimal / lnmp / both'
-        required: true
-        default: 'both'
-        type: choice
-        options:
-          - both
-          - minimal
-          - lnmp
 
 env:
   IMG: registry.cn-shanghai.aliyuncs.com/xulawyer985/baota
@@ -45,18 +36,12 @@ jobs:
 
       # ---------- 1. 先构建，全部本地完成 ----------
       - name: Build minimal-${{ matrix.arch }}
-        if: ${{ github.event.inputs.build_type != 'lnmp' }}
         run: |
           docker build -t $IMG:minimal-${{ matrix.arch }} \
             -f ./dockerfiles/dockerfile.baota . || exit 1
 
       - name: Build lnmp-${{ matrix.arch }}
-        if: ${{ github.event.inputs.build_type != 'minimal' }}
         run: |
-          # 只编 lnmp 时本地没有 minimal，需先从仓库拉下来
-          if [ "${{ github.event.inputs.build_type }}" = "lnmp" ]; then
-            docker pull $IMG:minimal-${{ matrix.arch }} || exit 1
-          fi
           docker build --pull=false \
             --build-arg BASE_TAG=minimal-${{ matrix.arch }} \
             -t $IMG:lnmp-${{ matrix.arch }} \
@@ -65,12 +50,8 @@ jobs:
       # ---------- 2. 全部构建成功后，再统一推送 ----------
       - name: Push images
         run: |
-          if [ "${{ github.event.inputs.build_type }}" != "lnmp" ]; then
-            docker push $IMG:minimal-${{ matrix.arch }} || exit 1
-          fi
-          if [ "${{ github.event.inputs.build_type }}" != "minimal" ]; then
-            docker push $IMG:lnmp-${{ matrix.arch }} || exit 1
-          fi
+          docker push $IMG:minimal-${{ matrix.arch }} || exit 1
+          docker push $IMG:lnmp-${{ matrix.arch }} || exit 1
 
   manifest:
     needs: build
@@ -88,7 +69,6 @@ jobs:
           password: ${{ secrets.ALIYUN_PASSWORD }}
 
       - name: Create manifest minimal
-        if: ${{ github.event.inputs.build_type != 'lnmp' }}
         run: |
           docker buildx imagetools create \
             -t $IMG:minimal \
@@ -97,7 +77,6 @@ jobs:
             $IMG:minimal-arm64
 
       - name: Create manifest lnmp
-        if: ${{ github.event.inputs.build_type != 'minimal' }}
         run: |
           docker buildx imagetools create \
             -t $IMG:lnmp \
