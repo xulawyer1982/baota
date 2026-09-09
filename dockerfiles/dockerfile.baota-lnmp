@@ -4,14 +4,11 @@ LABEL maintainer="eyunzhu <mail@eyunzhu.com>"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# aarch64 编译 MySQL 5.7 的 locale 修复（否则 make Error 2）
-RUN localedef -i en_US -f UTF-8 en_US.UTF-8 2>/dev/null || true
-RUN sed -i 's/^export LANG=en_US.UTF-8/export LANG=C.UTF-8/' /www/server/panel/install/public.sh
-
 # aarch64 没有官方预编译包，全部走编译安装（install_soft.sh 第 1 个参数 0=编译，1/4=极速）
-
 RUN tar xzf /www_backup.tar.gz -C / \
     && rm -rf /www_backup.tar.gz \
+    && localedef -i en_US -f UTF-8 en_US.UTF-8 2>/dev/null || true \
+    && sed -i 's/^export LANG=en_US.UTF-8/export LANG=C.UTF-8/' /www/server/panel/install/public.sh \
     && cd /www/server/panel/install \
     && bash install_soft.sh 0 install php 7.4 \
     && bash install_soft.sh 0 install redis 74 \
