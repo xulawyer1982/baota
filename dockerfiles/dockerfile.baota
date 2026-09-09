@@ -5,9 +5,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # 使用 ARG 定义构建时变量（可在构建时覆盖）
 ARG BT_INSTALL_SH_URL="https://download.bt.cn/install/install_panel.sh"
-ARG BT_PANEL_PORT=8888
-ARG BT_PANEL_PATH="btpanel"
-ARG BT_USERNAME="username"
+ARG BT_PANEL_PORT=9091
+ARG BT_PANEL_PATH="cockpit"
+ARG BT_USERNAME="xulawyer"
 ARG BT_PASSWORD="password"
 
 COPY scripts/boot.sh /usr/local/bin/boot.sh
