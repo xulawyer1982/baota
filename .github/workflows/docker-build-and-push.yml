@@ -6,7 +6,7 @@ on:
       image_tag:
         description: 'Docker image tag (e.g., v9.6.0_1.0)宝塔版本+构建版本'
         required: true
-        default: 'v9.6.0_1.0'
+        default: 'v88_1.0'
 
 jobs:
   build:
@@ -36,36 +36,36 @@ jobs:
     # 构建 baota:minimal
     - name: Build minimal image
       run: |
-        docker build -t eyunzhu/baota:minimal -t eyunzhu/baota:latest -t eyunzhu/baota:minimal-${{ github.event.inputs.image_tag }} -f ./dockerfiles/dockerfile.baota . || exit 1
+        docker build -t xulawyer/baota:minimal -t xulawyer/baota:latest -t xulawyer/baota:minimal-${{ github.event.inputs.image_tag }} -f ./dockerfiles/dockerfile.baota . || exit 1
 
     # 验证 baota:minimal 是否存在
     - name: Verify images exist
       run: |
-        if ! docker image inspect eyunzhu/baota:minimal > /dev/null 2>&1; then
-            echo "Error: eyunzhu/baota:minimal does not exist!"
+        if ! docker image inspect xulawyer/baota:minimal > /dev/null 2>&1; then
+            echo "Error: xulawyer/baota:minimal does not exist!"
             exit 1
         fi
     
     # 构建 baota:lnmp
     - name: Build lnmp image
       run: |
-        docker build -t eyunzhu/baota:lnmp -t eyunzhu/baota:lnmp-${{ github.event.inputs.image_tag }} -f ./dockerfiles/dockerfile.baota-lnmp . || exit 1
+        docker build -t xulawyer/baota:lnmp -t xulawyer/baota:lnmp-${{ github.event.inputs.image_tag }} -f ./dockerfiles/dockerfile.baota-lnmp . || exit 1
 
     # 验证 baota:lnmp 是否存在
     - name: Verify images exist
       run: |
-        if ! docker image inspect eyunzhu/baota:lnmp > /dev/null 2>&1; then
-            echo "Error: eyunzhu/baota:lnmp does not exist!"
+        if ! docker image inspect xulawyer/baota:lnmp > /dev/null 2>&1; then
+            echo "Error: xulawyer/baota:lnmp does not exist!"
             exit 1
         fi
            
     - name: Push minimal image to Docker Hub
       run: |
-        docker push eyunzhu/baota:minimal
-        docker push eyunzhu/baota:latest
-        docker push eyunzhu/baota:minimal-${{ github.event.inputs.image_tag }}
+        docker push xulawyer/baota:minimal
+        docker push xulawyer/baota:latest
+        docker push xulawyer/baota:minimal-${{ github.event.inputs.image_tag }}
 
     - name: Push LNMP image to Docker Hub
       run: |
-        docker push eyunzhu/baota:lnmp
-        docker push eyunzhu/baota:lnmp-${{ github.event.inputs.image_tag }}
+        docker push xulawyer/baota:lnmp
+        docker push xulawyer/baota:lnmp-${{ github.event.inputs.image_tag }}
