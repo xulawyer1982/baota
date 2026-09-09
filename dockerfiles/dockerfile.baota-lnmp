@@ -3,11 +3,12 @@ FROM registry.cn-shanghai.aliyuncs.com/xulawyer985/baota:${BASE_TAG}
 LABEL maintainer="eyunzhu <mail@eyunzhu.com>"
 
 ENV DEBIAN_FRONTEND=noninteractive
+
+# aarch64 编译 MySQL 5.7 的 locale 修复（否则 make Error 2）
 RUN localedef -i en_US -f UTF-8 en_US.UTF-8 2>/dev/null || true
 RUN sed -i 's/^export LANG=en_US.UTF-8/export LANG=C.UTF-8/' /www/server/panel/install/public.sh
-# 直接极速安装php成功但会启动失败，需要提前安装库：libc-ares2 libonig5 已在minimal提前安装过此库
-# 编译安装PHP需要提前安装cmake
-# nginx快速安装会判断inodes空间,而我在nas的docker中inodes检测不正常，所以需要这里使用编译安装
+
+# aarch64 没有官方预编译包，全部走编译安装（install_soft.sh 第 1 个参数 0=编译，1/4=极速）
 
 RUN tar xzf /www_backup.tar.gz -C / \
     && rm -rf /www_backup.tar.gz \
@@ -16,25 +17,21 @@ RUN tar xzf /www_backup.tar.gz -C / \
     && bash install_soft.sh 0 install redis 74 \
     && bash install_soft.sh 0 install fileinfo 74 \
     && bash install_soft.sh 0 install mbstring 74 \
-    && bash install_soft.sh 0 install nginx 1.28 \ 
-    && bash install_soft.sh 4 install mysql 5.7 \ 
-    && bash install_soft.sh 4 install phpmyadmin 5.1 \ 
-    # 压缩删除/www 解决挂载目录时被宿主机覆盖的问题
+    && bash install_soft.sh 0 install nginx 1.28 \
+    && bash install_soft.sh 0 install mysql 5.7 \
+    && bash install_soft.sh 0 install phpmyadmin 5.1 \
+    && rm -rf /www/server/mysql/mysql-test \
+    && rm -rf /www/server/mysql/lib/libmysqld.a \
+    && rm -rf /www/server/mysql/bin/*embedded \
+    && rm -rf /www/server/mysql/bin/mysqlxtest \
+    && rm -rf /root/.cache/pip \
     && rm -rf /www/reserve_space.pl \
     && rm -rf /www/server/data/ib_logfile* \
     && tar czf /www_backup.tar.gz -C / www \
     && rm -rf /www \
-    # 清理
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /www/reserve_space.pl \
     && rm -rf /var/log/* \
-    && rm -rf /tmp/* 
-
-RUN rm -rf /www/server/mysql/mysql-test \
-           /www/server/mysql/lib/libmysqld.a \
-           /www/server/mysql/bin/*embedded \
-           /www/server/mysql/bin/mysqlxtest \
-           /root/.cache/pip /tmp/* 2>/dev/null || true
+    && rm -rf /tmp/*
 
 STOPSIGNAL SIGRTMIN+3
