@@ -1,8 +1,10 @@
-FROM xulawyer/baota:minimal
+ARG BASE_TAG=minimal
+FROM xulawyer/baota:${BASE_TAG}
 LABEL maintainer="eyunzhu <mail@eyunzhu.com>"
 
 ENV DEBIAN_FRONTEND=noninteractive
-
+RUN localedef -i en_US -f UTF-8 en_US.UTF-8 2>/dev/null || true
+RUN sed -i 's/^export LANG=en_US.UTF-8/export LANG=C.UTF-8/' /www/server/panel/install/public.sh
 # 直接极速安装php成功但会启动失败，需要提前安装库：libc-ares2 libonig5 已在minimal提前安装过此库
 # 编译安装PHP需要提前安装cmake
 # nginx快速安装会判断inodes空间,而我在nas的docker中inodes检测不正常，所以需要这里使用编译安装
@@ -28,5 +30,11 @@ RUN tar xzf /www_backup.tar.gz -C / \
     && rm -rf /www/reserve_space.pl \
     && rm -rf /var/log/* \
     && rm -rf /tmp/* 
+
+RUN rm -rf /www/server/mysql/mysql-test \
+           /www/server/mysql/lib/libmysqld.a \
+           /www/server/mysql/bin/*embedded \
+           /www/server/mysql/bin/mysqlxtest \
+           /root/.cache/pip /tmp/* 2>/dev/null || true
 
 STOPSIGNAL SIGRTMIN+3
