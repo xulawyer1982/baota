@@ -4,68 +4,109 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'Docker image tag (e.g., v9.6.0_1.0)宝塔版本+构建版本'
+        description: 'Docker image tag (e.g., v9.6.0_1.0) 宝塔版本+构建版本'
         required: true
-        default: 'v88_1.0'
+        default: 'v9.6.0_1.0'
+
+env:
+  IMG: xulawyer/baota
+
+# 防止连续触发两次导致 manifest 互相覆盖
+concurrency:
+  group: baota-build-dockerhub
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Cache Docker layers
-      uses: actions/cache@v4
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.ref }}-${{ github.sha }}
-        restore-keys: |
-            ${{ runner.os }}-buildx-
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      # ---------- 1. 先构建，全部本地完成（带 GHA 层缓存） ----------
+      - name: Build minimal-${{ matrix.arch }}
+        run: |
+          docker buildx build --load \
+            --cache-from type=gha,scope=dh-minimal-${{ matrix.arch }} \
+            --cache-to type=gha,scope=dh-minimal-${{ matrix.arch }},mode=max \
+            -t $IMG:minimal-${{ matrix.arch }} \
+            -f ./dockerfiles/dockerfile.baota .
 
-    # 构建 baota:minimal
-    - name: Build minimal image
-      run: |
-        docker build -t xulawyer/baota:minimal -t xulawyer/baota:latest -t xulawyer/baota:minimal-${{ github.event.inputs.image_tag }} -f ./dockerfiles/dockerfile.baota . || exit 1
+      - name: Build lnmp-${{ matrix.arch }}
+        run: |
+          docker buildx build --load \
+            --cache-from type=gha,scope=dh-lnmp-${{ matrix.arch }} \
+            --cache-to type=gha,scope=dh-lnmp-${{ matrix.arch }},mode=max \
+            --build-arg BASE_IMAGE=$IMG:minimal-${{ matrix.arch }} \
+            -t $IMG:lnmp-${{ matrix.arch }} \
+            -f ./dockerfiles/dockerfile.baota-lnmp .
 
-    # 验证 baota:minimal 是否存在
-    - name: Verify images exist
-      run: |
-        if ! docker image inspect xulawyer/baota:minimal > /dev/null 2>&1; then
-            echo "Error: xulawyer/baota:minimal does not exist!"
-            exit 1
-        fi
-    
-    # 构建 baota:lnmp
-    - name: Build lnmp image
-      run: |
-        docker build -t xulawyer/baota:lnmp -t xulawyer/baota:lnmp-${{ github.event.inputs.image_tag }} -f ./dockerfiles/dockerfile.baota-lnmp . || exit 1
+      # ---------- 2. 推送前本地验证 ----------
+      - name: Verify images exist
+        run: |
+          docker image inspect $IMG:minimal-${{ matrix.arch }} > /dev/null
+          docker image inspect $IMG:lnmp-${{ matrix.arch }} > /dev/null
 
-    # 验证 baota:lnmp 是否存在
-    - name: Verify images exist
-      run: |
-        if ! docker image inspect xulawyer/baota:lnmp > /dev/null 2>&1; then
-            echo "Error: xulawyer/baota:lnmp does not exist!"
-            exit 1
-        fi
-           
-    - name: Push minimal image to Docker Hub
-      run: |
-        docker push xulawyer/baota:minimal
-        docker push xulawyer/baota:latest
-        docker push xulawyer/baota:minimal-${{ github.event.inputs.image_tag }}
+      # ---------- 3. 全部构建成功后，再统一推送 ----------
+      - name: Push images
+        run: |
+          docker push $IMG:minimal-${{ matrix.arch }}
+          docker push $IMG:lnmp-${{ matrix.arch }}
 
-    - name: Push LNMP image to Docker Hub
-      run: |
-        docker push xulawyer/baota:lnmp
-        docker push xulawyer/baota:lnmp-${{ github.event.inputs.image_tag }}
+  manifest:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # minimal 合并为：minimal / latest / minimal-<tag>
+      - name: Create manifest minimal
+        run: |
+          docker buildx imagetools create \
+            -t $IMG:minimal \
+            -t $IMG:latest \
+            -t $IMG:minimal-${{ github.event.inputs.image_tag }} \
+            $IMG:minimal-amd64 \
+            $IMG:minimal-arm64
+
+      - name: Create manifest lnmp
+        run: |
+          docker buildx imagetools create \
+            -t $IMG:lnmp \
+            -t $IMG:lnmp-${{ github.event.inputs.image_tag }} \
+            $IMG:lnmp-amd64 \
+            $IMG:lnmp-arm64
+
+      # ---------- 4. 验证 manifest 双架构都在 ----------
+      - name: Verify manifests
+        run: |
+          docker buildx imagetools inspect $IMG:minimal-${{ github.event.inputs.image_tag }}
+          docker buildx imagetools inspect $IMG:lnmp-${{ github.event.inputs.image_tag }}
