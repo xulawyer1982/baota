@@ -54,11 +54,14 @@ jobs:
             -t $IMG:minimal-${{ matrix.arch }} \
             -f ./dockerfiles/dockerfile.baota .
 
+      # 注意：buildx 容器构建器看不到本地 docker 镜像（--build-context docker-image:// 实测也无效），
+      # 所以 lnmp 用 docker 默认驱动构建——直接以上一步 --load 到本地的 minimal 为基础；
+      # 缓存改用 inline cache（--cache-from 指向上次推送的 lnmp 镜像，首次运行无该镜像仅警告不报错）
       - name: Build lnmp-${{ matrix.arch }}
         run: |
-          docker buildx build --load \
-            --cache-from type=gha,scope=lnmp-${{ matrix.arch }} \
-            --cache-to type=gha,scope=lnmp-${{ matrix.arch }},mode=max \
+          docker build \
+            --cache-from $IMG:lnmp-${{ matrix.arch }} \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
             --build-arg BASE_IMAGE=$IMG:minimal-${{ matrix.arch }} \
             -t $IMG:lnmp-${{ matrix.arch }} \
             -f ./dockerfiles/dockerfile.baota-lnmp .
